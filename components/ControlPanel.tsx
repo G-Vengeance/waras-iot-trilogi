@@ -38,12 +38,12 @@ export default function ControlPanel({
           <button
             onClick={() => onModeChange('otomatis' as ControlMode)} // SINKRON DENGAN ESP32
             className={`
-              px-4 py-3 rounded-lg border-2 font-medium transition-all duration-200 cursor-pointer
-              ${mode === 'otomatis' || mode === 'auto'
-                ? 'bg-blue-50 border-blue-500 text-blue-700'
-                : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
-              }
-            `}
+            px-4 py-3 rounded-lg border-2 font-medium transition-all duration-200 cursor-pointer
+            ${(mode === 'auto' || mode === 'otomatis')
+              ? 'bg-blue-50 border-blue-500 text-blue-700'
+              : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+            }
+          `}
           >
             <div className="flex items-center justify-center gap-2">
               <Zap className="w-4 h-4" />

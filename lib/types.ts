@@ -6,22 +6,19 @@ export interface SensorData {
   timestamp: number;
 }
 
-// Types untuk control mode
+// Tambahkan 'otomatis' agar TypeScript tidak protes di komponen
 export type ControlMode = 'auto' | 'manual' | 'otomatis';
 
-// Types untuk actuator state
 export interface ActuatorState {
   feeder: boolean;
   pelontar: boolean;
 }
 
-// Types untuk system control
 export interface SystemControl {
   mode: ControlMode;
   actuators: ActuatorState;
 }
 
-// Types untuk historical data
 export interface HistoricalDataPoint {
   timestamp: number;
   ph: number;
@@ -29,7 +26,6 @@ export interface HistoricalDataPoint {
   temperature: number;
 }
 
-// Complete IoT data structure in Firebase
 export interface IoTData {
   sensors: {
     current: SensorData;
