@@ -7,7 +7,7 @@ export interface SensorData {
 }
 
 // Types untuk control mode
-export type ControlMode = 'auto' | 'manual';
+export type ControlMode = 'auto' | 'manual' | 'otomatis';
 
 // Types untuk actuator state
 export interface ActuatorState {
