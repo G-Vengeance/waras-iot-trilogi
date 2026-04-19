@@ -125,12 +125,13 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
     document.body.removeChild(link);
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+ const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const pointData = payload[0].payload;
       return (
-        <div className="bg-white p-3 rounded-lg shadow-xl border border-gray-100 z-50">
-          <p className="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">
+        // Background kotak tooltip diubah jadi dark:bg-slate-800
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 z-50 transition-colors duration-300">
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400 uppercase mb-2 tracking-wider">
             {new Date(pointData.timestamp).toLocaleString('id-ID', {
               day: '2-digit', month: 'long', year: 'numeric',
               hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -139,8 +140,9 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              <p className="text-sm font-semibold text-gray-700">
-                {entry.name}: <span className="text-gray-900">{entry.value.toFixed(2)}</span>
+              {/* Teks nama sensor (Suhu, pH) dan Angkanya diubah jadi putih */}
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors">
+                {entry.name}: <span className="text-gray-900 dark:text-white transition-colors">{entry.value.toFixed(2)}</span>
               </p>
             </div>
           ))}
@@ -157,42 +159,31 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
   const isZoomed = data.length > 0 && (zoomDomain.start > 0 || zoomDomain.end < data.length - 1);
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-gray-100 dark:border-slate-700 p-6 transition-colors duration-300">
       
-      {/* HEADER: Judul & Grup Tombol */}
+{/* HEADER: Judul & Grup Tombol */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
-          <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">
+          {/* Tambahkan dark:text-white di sini */}
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white transition-colors">{title}</h3>
+          <span className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-bold">
             LIVE
           </span>
-          
-          {/* Muncul otomatis kalau lagi nge-zoom */}
-          {isZoomed && (
-            <button 
-              onClick={() => setZoomDomain({ start: 0, end: data.length - 1 })}
-              className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-bold hover:bg-gray-200 cursor-pointer"
-            >
-              🔄 Reset Zoom
-            </button>
-          )}
         </div>
         
-        {/* Tombol Export Warna Warni */}
+        {/* Tombol Export Warna Warni - Support Dark Mode */}
         {data.length > 0 && (
           <div className="flex items-center gap-3">
             <button 
               onClick={exportToCSV}
-              className="text-xs font-bold px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 hover:shadow-sm transition-all flex items-center gap-1.5"
+              className="text-xs font-bold px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-all flex items-center gap-1.5"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               CSV
             </button>
             <button 
               onClick={exportToXML}
-              className="text-xs font-bold px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 hover:shadow-sm transition-all flex items-center gap-1.5"
+              className="text-xs font-bold px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1.5"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               XML
             </button>
           </div>

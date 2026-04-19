@@ -29,17 +29,21 @@ export default function Dashboard() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
+      {/* Main Background ditambahkan dark:from-gray-900 dark:to-gray-800 */}
+      <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+        
+        {/* Header - ditambahkan dark:bg-gray-800 dark:border-gray-700 */}
+        <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                  <Activity className="w-8 h-8 text-blue-600" />
+                {/* Text Title ditambahkan dark:text-white */}
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3 transition-colors duration-300">
+                  <Activity className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   WARAS Dashboard
                 </h1>
-                <p className="text-sm text-gray-600 mt-1">
+                {/* Subtitle ditambahkan dark:text-gray-400 */}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">
                   Sistem Monitoring Kualitas Air Real-time
                 </p>
               </div>
@@ -50,21 +54,20 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Error State */}
+          {/* Error State - Dark Mode Support */}
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-4 transition-colors">
+              <p className="text-red-800 dark:text-red-300 text-sm">
                 <strong>Error:</strong> {error}
               </p>
             </div>
           )}
 
-          {/* Loading State */}
+          {/* Loading State - Dark Mode Support */}
           {isLoading && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              {/* Ubah <p> menjadi <div> */}
-              <div className="text-blue-800 text-sm flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 transition-colors">
+              <div className="text-blue-800 dark:text-blue-300 text-sm flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent" />
                 Memuat data dari Firebase...
               </div>
             </div>
@@ -136,16 +139,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Footer Info */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          {/* Footer Info - Dark Mode Support */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-6 transition-colors duration-300">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div>
-                <p className="text-sm text-gray-600">Total Data Points</p>
-                <p className="text-2xl font-bold text-gray-900">{historyData.length}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Data Points</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">{historyData.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Last Update</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Last Update</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">
                   {sensorData?.timestamp 
                     ? new Date(sensorData.timestamp).toLocaleTimeString('id-ID')
                     : '-'
@@ -153,8 +156,8 @@ export default function Dashboard() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">System Status</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">System Status</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">
                   {isConnected ? '🟢 Online' : '🔴 Offline'}
                 </p>
               </div>
