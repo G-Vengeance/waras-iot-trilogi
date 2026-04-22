@@ -1,11 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class', // <--- INI KUNCI UTAMA DARK MODE-NYA
+  darkMode: 'class', 
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/**/*.{js,ts,jsx,tsx,mdx}', // Tambahan jaga-jaga kalau pakai folder src
+    './src/**/*.{js,ts,jsx,tsx,mdx}', 
   ],
   theme: {
     extend: {

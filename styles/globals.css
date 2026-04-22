@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Konfigurasi Warna Dasar (Shadcn Theme - LIGHT MODE) */
+    /* LIGHT MODE */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -27,7 +27,7 @@
     --radius: 0.5rem;
   }
 
-  /* INI YANG BIKIN SEMUANYA JADI GELAP (Shadcn Theme - DARK MODE) */
+  /* DARK MODE */
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -64,7 +64,7 @@
   }
 }
 
-/* Custom scrollbar - Support Dark Mode */
+/* */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

@@ -29,20 +29,17 @@ export default function Dashboard() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      {/* Main Background ditambahkan dark:from-gray-900 dark:to-gray-800 */}
       <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
         
-        {/* Header - ditambahkan dark:bg-gray-800 dark:border-gray-700 */}
+        {/* Header */}
         <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                {/* Text Title ditambahkan dark:text-white */}
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3 transition-colors duration-300">
                   <Activity className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   WARAS Dashboard
                 </h1>
-                {/* Subtitle ditambahkan dark:text-gray-400 */}
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">
                   Sistem Monitoring Kualitas Air Real-time
                 </p>
@@ -54,7 +51,7 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Error State - Dark Mode Support */}
+          
           {error && (
             <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-4 transition-colors">
               <p className="text-red-800 dark:text-red-300 text-sm">
@@ -63,7 +60,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Loading State - Dark Mode Support */}
           {isLoading && (
             <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4 transition-colors">
               <div className="text-blue-800 dark:text-blue-300 text-sm flex items-center gap-2">
@@ -73,7 +69,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Sensor Statistics */}
+          {/* Sensor Statistics - SUDAH DILENGKAPI PARAMETER BAHAYA */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <StatCard
               title="pH Level"
@@ -81,8 +77,9 @@ export default function Dashboard() {
               unit="pH"
               icon={Droplets}
               color="blue"
-              trend="stable"
-              subtitle="Tingkat keasaman air"
+              minSafe={6.5} // Batas bawah pH
+              maxSafe={8.5} // Batas atas pH
+              subtitle="Ideal: 6.5 - 8.5 pH"
             />
             <StatCard
               title="Dissolved Oxygen"
@@ -90,8 +87,8 @@ export default function Dashboard() {
               unit="mg/L"
               icon={Wind}
               color="green"
-              trend="up"
-              subtitle="Oksigen terlarut"
+              minSafe={4.0} // DO di bawah 4.0 sangat bahaya
+              subtitle="Minimal: 4.0 mg/L"
             />
             <StatCard
               title="Temperature"
@@ -99,14 +96,14 @@ export default function Dashboard() {
               unit="°C"
               icon={Thermometer}
               color="orange"
-              trend="stable"
-              subtitle="Suhu air"
+              minSafe={26.0} // Batas dingin
+              maxSafe={30.0} // Batas panas
+              subtitle="Ideal: 26 - 30 °C"
             />
           </div>
 
           {/* Charts & Control Panel */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Historical Charts */}
             <div className="lg:col-span-2 space-y-6">
               <ChartCard
                 title="Grafik pH & DO"
@@ -125,7 +122,6 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Control Panel */}
             <div className="lg:col-span-1">
               {control && (
                 <ControlPanel
@@ -139,7 +135,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Footer Info - Dark Mode Support */}
+          {/* Footer Info */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-6 transition-colors duration-300">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div>

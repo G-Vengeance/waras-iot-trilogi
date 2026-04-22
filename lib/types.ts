@@ -1,4 +1,3 @@
-// Types untuk sensor data
 export interface SensorData {
   ph: number;
   do: number;
@@ -6,7 +5,7 @@ export interface SensorData {
   timestamp: number;
 }
 
-// Tambahkan 'otomatis' agar TypeScript tidak protes di komponen
+
 export type ControlMode = 'auto' | 'manual' | 'otomatis';
 
 export interface ActuatorState {
@@ -34,3 +33,4 @@ export interface IoTData {
   control: SystemControl;
   lastUpdated: number;
 }
+

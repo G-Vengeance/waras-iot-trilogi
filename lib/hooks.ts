@@ -4,7 +4,7 @@ import { database } from './firebase';
 import { SensorData, SystemControl, HistoricalDataPoint, ControlMode, ActuatorState } from './types';
 
 /**
- * Hook Sensor Data - Tetap solid
+ * Hook Sensor Data
  */
 export function useSensorData() {
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
@@ -87,7 +87,6 @@ export function useSystemControl() {
   const updateMode = async (mode: ControlMode) => {
     setUpdating(true);
     try {
-      // Pastikan string 'otomatis' terkirim dengan benar ke Firebase
       await update(ref(database, 'control'), { mode });
     } catch (err) {
       console.error('Gagal update mode:', err);
@@ -114,7 +113,7 @@ export function useSystemControl() {
 }
 
 /**
- * PERBAIKAN TOTAL: Hook Connection Status
+ *
  */
 export function useConnectionStatus() {
   const [isConnected, setIsConnected] = useState(false);
@@ -131,15 +130,12 @@ export function useConnectionStatus() {
       }
     });
 
-    // 2. HEARTBEAT CHECKER (Berjalan setiap 1 detik)
-    // Ini biar status langsung ganti ke "Offline" tanpa perlu refresh halaman
+    // 2. HEARTBEAT CHECKER 
     const interval = setInterval(() => {
       if (lastUpdate) {
         const now = Date.now();
         const diff = now - lastUpdate;
         
-        // Jika selisih waktu > 30 detik, anggap Offline
-        // Jika Tuan Muda melihat angka "17576 jam", diff-nya bakal jutaan, maka otomatis Offline
         setIsConnected(diff < 30000); 
       } else {
         setIsConnected(false);
@@ -150,7 +146,7 @@ export function useConnectionStatus() {
       unsubscribe();
       clearInterval(interval);
     };
-  }, [lastUpdate]); // Re-run checker setiap kali lastUpdate berubah
+  }, [lastUpdate]); // Re-run checker lastUpdate
 
   return { isConnected, lastUpdate };
 }
