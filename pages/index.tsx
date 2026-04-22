@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { Droplets, Wind, Thermometer, Activity } from 'lucide-react';
 import StatCard from '@/components/StatCard';
@@ -19,6 +19,21 @@ export default function Dashboard() {
   const { isConnected, lastUpdate } = useConnectionStatus();
 
   const isLoading = sensorLoading || controlLoading;
+
+  // --- OBAT ANTI-HYDRATION ERROR UNTUK INDEX ---
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // --- FUNGSI FORMAT WAKTU NORMAL (Tanpa Detik) ---
+  const formatLastUpdate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const tgl = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const jam = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':');
+    return `${tgl} - ${jam}`;
+  };
 
   return (
     <>
@@ -69,7 +84,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Sensor Statistics - SUDAH DILENGKAPI PARAMETER BAHAYA */}
+          {/* Sensor Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <StatCard
               title="pH Level"
@@ -77,8 +92,8 @@ export default function Dashboard() {
               unit="pH"
               icon={Droplets}
               color="blue"
-              minSafe={6.5} // Batas bawah pH
-              maxSafe={8.5} // Batas atas pH
+              minSafe={6.5} 
+              maxSafe={8.5} 
               subtitle="Ideal: 6.5 - 8.5 pH"
             />
             <StatCard
@@ -87,7 +102,7 @@ export default function Dashboard() {
               unit="mg/L"
               icon={Wind}
               color="green"
-              minSafe={4.0} // DO di bawah 4.0 sangat bahaya
+              minSafe={4.0} 
               subtitle="Minimal: 4.0 mg/L"
             />
             <StatCard
@@ -96,8 +111,8 @@ export default function Dashboard() {
               unit="°C"
               icon={Thermometer}
               color="orange"
-              minSafe={26.0} // Batas dingin
-              maxSafe={30.0} // Batas panas
+              minSafe={26.0} 
+              maxSafe={30.0} 
               subtitle="Ideal: 26 - 30 °C"
             />
           </div>
@@ -144,9 +159,10 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Last Update</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">
-                  {sensorData?.timestamp 
-                    ? new Date(sensorData.timestamp).toLocaleTimeString('id-ID')
+                {/* --- FIX JAM FOOTER: Pakai text-xl agar muat, dan isMounted agar tidak error --- */}
+                <p className="text-xl font-bold text-gray-900 dark:text-white transition-colors">
+                  {isMounted && sensorData?.timestamp 
+                    ? formatLastUpdate(sensorData.timestamp)
                     : '-'
                   }
                 </p>
