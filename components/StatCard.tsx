@@ -46,7 +46,7 @@ export default function StatCard({
     if (lastMeaningfulValue.current === null || (lastMeaningfulValue.current === 0 && currentValue !== 0)) {
       lastMeaningfulValue.current = currentValue;
       setTrend('stable');
-      setTrendText('Stabil (Data Awal)');
+      setTrendText('Stabil');
       return; 
     }
 

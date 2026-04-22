@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Wifi, WifiOff } from 'lucide-react';
 
 interface StatusBadgeProps {
@@ -7,13 +7,6 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ isConnected, lastUpdate }: StatusBadgeProps) {
-  // --- OBAT ANTI-HYDRATION ERROR ---
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true); // Memberitahu React bahwa komponen sudah mendarat di browser
-  }, []);
-
   const formatLastUpdate = () => {
     if (!lastUpdate) return 'Belum ada data';
     
@@ -48,8 +41,7 @@ export default function StatusBadge({ isConnected, lastUpdate }: StatusBadgeProp
         </>
       )}
       <span className="text-xs opacity-75 font-normal ml-1">
-        {/* CEK MOUNTING: Jangan cetak jam sebelum mendarat di browser */}
-        • {isMounted ? formatLastUpdate() : 'Memuat waktu...'}
+        • {formatLastUpdate()}
       </span>
     </div>
   );
