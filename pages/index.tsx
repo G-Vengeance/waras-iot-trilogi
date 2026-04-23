@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Activity, Droplets, Wind, Thermometer } from 'lucide-react';
+import { Activity, Droplets, Wind, Thermometer, User as UserIcon } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import ChartCard from '@/components/ChartCard';
 import ControlPanel from '@/components/ControlPanel';
 import StatusBadge from '@/components/StatusBadge';
 import PredictiveChartCard from '@/components/PredictiveChartCard';
+import UserProfileModal from '@/components/UserProfileModal'; // 👇 Import Modal Profil
 import {
   useSensorData,
   useHistoricalData,
   useSystemControl,
   useConnectionStatus,
+  useAuth // 👇 Import Hook Auth
 } from '@/lib/hooks';
 
 export default function Dashboard() {
@@ -18,6 +20,10 @@ export default function Dashboard() {
   const { historyData, loading: historyLoading } = useHistoricalData(50);
   const { control, loading: controlLoading, updateMode, toggleActuator } = useSystemControl();
   const { isConnected, lastUpdate } = useConnectionStatus();
+
+  // 👇 Ambil data user & siapkan state untuk Modal Profil 👇
+  const { user } = useAuth();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const isLoading = sensorLoading || controlLoading;
   const [isMounted, setIsMounted] = useState(false);
@@ -50,13 +56,11 @@ export default function Dashboard() {
               
               <div className="flex items-center gap-2">
                 <div className="relative w-12 h-12 flex-shrink-0">
-                  {/* Logo Light Mode */}
                   <img 
                     src="/logo-light.png" 
                     alt="Logo WARAS" 
                     className="absolute inset-0 w-full h-full object-contain drop-shadow-md rounded-lg transition-opacity duration-500 ease-in-out opacity-100 dark:opacity-0"
                   />
-                  {/* Logo Dark Mode - Pakai logo-dark2.png sesuai file Tuan Muda */}
                   <img 
                     src="/logo-dark2.png" 
                     alt="Logo WARAS" 
@@ -74,8 +78,28 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Status Badge */}
-              {isMounted && <StatusBadge isConnected={isConnected} lastUpdate={lastUpdate} />}
+              {/* 👇 Status Badge & Tombol Profil User 👇 */}
+              <div className="flex items-center gap-4">
+                {isMounted && <StatusBadge isConnected={isConnected} lastUpdate={lastUpdate} />}
+                
+                {/* Tombol hanya muncul kalau Tuan Muda sudah Login */}
+                {user && (
+                  <button 
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="flex items-center gap-2 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-600 shadow-sm transition-all"
+                  >
+                    <img 
+                      src={user.photoURL || "https://api.dicebear.com/7.x/bottts/svg?seed=Felix&backgroundColor=b6e3f4"} 
+                      alt="Avatar" 
+                      className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-100 dark:border-slate-500"
+                    />
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200 hidden sm:block">
+                      {user.displayName || 'Operator'}
+                    </span>
+                  </button>
+                )}
+              </div>
+
             </div>
           </div>
         </div>
@@ -158,7 +182,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Footer Footer Status */}
+          {/* Footer Status */}
           <div className="bg-gradient-to-br from-indigo-50/50 to-white dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border border-indigo-100 dark:border-indigo-900/50 p-6 transition-all duration-300">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div>
@@ -182,6 +206,13 @@ export default function Dashboard() {
           
         </div>
       </main>
+
+      {/* 👇 Panggil Modal Profil di luar <main> 👇 */}
+      <UserProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+        user={user} 
+      />
     </>
   );
 }

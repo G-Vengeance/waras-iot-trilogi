@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ref, onValue, update, set, query, limitToLast } from 'firebase/database';
-import { database } from './firebase';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { database } from './firebase'; // Pastikan database diexport dari file ini
 import { SensorData, SystemControl, HistoricalDataPoint, ControlMode, ActuatorState } from './types';
 
 /**
@@ -42,7 +43,7 @@ export function useHistoricalData(limitCount: number = 50) {
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     
-    // 👇 Menggunakan Query limitToLast agar tidak narik semua data (Hemat Kuota & Cepat)
+    // Menggunakan Query limitToLast agar tidak narik semua data (Hemat Kuota & Cepat)
     const historyRef = query(
       ref(database, `sensors/history/${currentMonth}`),
       limitToLast(limitCount)
@@ -131,7 +132,7 @@ export function useConnectionStatus() {
   const [lastUpdate, setLastUpdate] = useState<number | null>(null);
 
   useEffect(() => {
-    // 👇 RAHASIA: Kita intip langsung timestamp di dalam folder sensor utama
+    // Kita intip langsung timestamp di dalam folder sensor utama
     // Jika data sensor ter-update, maka status otomatis Online.
     const statusRef = ref(database, 'sensors/current/timestamp');
 
@@ -147,8 +148,7 @@ export function useConnectionStatus() {
         const now = Date.now();
         const diff = now - lastUpdate;
         
-        // Kita beri toleransi 1 menit (60000ms). 
-        // Cocok untuk WiFi Hotspot yang kadang naik turun.
+        // Toleransi 1 menit (60000ms) untuk hotspot WiFi.
         setIsConnected(diff < 60000); 
       } else {
         setIsConnected(false);
@@ -162,4 +162,25 @@ export function useConnectionStatus() {
   }, [lastUpdate]);
 
   return { isConnected, lastUpdate };
+}
+
+/**
+ * Hook Auth - Pengecek Status Login Operator
+ */
+export function useAuth() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    // getAuth() diambil langsung dari modul firebase/auth
+    const auth = getAuth(); 
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  return { user, authLoading };
 }

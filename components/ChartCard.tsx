@@ -4,6 +4,8 @@ import {
 } from 'recharts';
 import { HistoricalDataPoint } from '@/lib/types';
 import { getDatabase, ref, get } from 'firebase/database';
+import { useAuth } from '@/lib/hooks'; // 👇 Import hook otentikasi
+import AuthModal from './AuthModal'; // 👇 Import pop-up login
 
 interface ChartCardProps {
   data: HistoricalDataPoint[];
@@ -16,16 +18,18 @@ interface ChartCardProps {
 }
 
 export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
+  // 👇 State untuk proteksi Export 👇
+  const { user } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   const [isMounted, setIsMounted] = useState(false);
   const [zoomDomain, setZoomDomain] = useState({ start: 0, end: 100 });
   const chartRef = useRef<HTMLDivElement>(null);
 
   const [isExporting, setIsExporting] = useState(false);
   
-  // 👇 State diubah untuk menampung format Tanggal Penuh (YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
-    // Menghasilkan format "2026-04-23"
     return today.toISOString().split('T')[0];
   });
 
@@ -81,16 +85,21 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
     return value.toString(); 
   };
 
-  // 👇 --- LOGIKA EXPORT HARIAN --- 👇
+  // 👇 FUNGSI PELINDUNG EXPORT 👇
+  const handleProtectedExport = (format: 'csv' | 'xml') => {
+    if (!user) {
+      setIsAuthModalOpen(true); // Munculkan form login kalau belum punya akses
+    } else {
+      handleExportHarian(format); // Lanjut download kalau sudah login
+    }
+  };
+
   const handleExportHarian = async (format: 'csv' | 'xml') => {
     if (!selectedDate) return alert("Pilih tanggal terlebih dahulu!");
     
     setIsExporting(true);
     
-    // Pecah YYYY-MM-DD menjadi tahun-bulan saja (karena Firebase nyimpannya per bulan)
-    // Contoh: "2026-04-23" menjadi "2026-04"
     const targetMonthFolder = selectedDate.substring(0, 7);
-    
     const db = getDatabase();
     const dataRef = ref(db, `sensors/history/${targetMonthFolder}`);
 
@@ -99,14 +108,10 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
       if (snapshot.exists()) {
         const firebaseData = snapshot.val();
         
-        // 1. Ubah object Firebase jadi array
-        // 2. Filter data: HANYA ambil data yang timestamp-nya terjadi pada 'selectedDate'
         const filteredDataArray = Object.values(firebaseData)
           .filter((d: any) => {
             if (!d.timestamp) return false;
-            // Ubah timestamp (milidetik) menjadi YYYY-MM-DD sesuai zona waktu lokal
             const dataDate = new Date(d.timestamp);
-            // Menyesuaikan waktu lokal Tuan Muda agar tidak beda hari karena UTC
             const localDateStr = new Date(dataDate.getTime() - (dataDate.getTimezoneOffset() * 60000))
                                   .toISOString().split('T')[0];
             return localDateStr === selectedDate;
@@ -207,117 +212,131 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
 
   if (!isMounted) return <div className="h-[400px] bg-slate-50/50 dark:bg-slate-800/50 animate-pulse rounded-2xl" />;
 
+  // 👇 Bungkus return utama dengan fragment <> ... </> agar bisa naruh Modal di bawah
   return (
-    <div className="bg-gradient-to-br from-indigo-50/50 to-white dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border border-indigo-100 dark:border-indigo-900/50 p-6 transition-all duration-300">
-      
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3">
-          <h3 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">
-            {title}
-          </h3>
-          <span className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-full font-bold uppercase tracking-widest shadow-sm">
-            Live Data
-          </span>
+    <>
+      <div className="bg-gradient-to-br from-indigo-50/50 to-white dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border border-indigo-100 dark:border-indigo-900/50 p-6 transition-all duration-300">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">
+              {title}
+            </h3>
+            <span className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-full font-bold uppercase tracking-widest shadow-sm">
+              Live Data
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="text-xs font-semibold px-2 py-1.5 border rounded-lg bg-white/50 dark:bg-slate-700 dark:text-white dark:border-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
+              title="Pilih Tanggal Export"
+            />
+            {/* 👇 Ubah onClick menjadi handleProtectedExport 👇 */}
+            <button 
+              onClick={() => handleProtectedExport('csv')}
+              disabled={isExporting}
+              className="text-xs font-bold px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 hover:shadow-sm transition-all disabled:opacity-50"
+            >
+              {isExporting ? '...' : 'CSV'}
+            </button>
+            <button 
+              onClick={() => handleProtectedExport('xml')}
+              disabled={isExporting}
+              className="text-xs font-bold px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-sm transition-all disabled:opacity-50"
+            >
+              {isExporting ? '...' : 'XML'}
+            </button>
+          </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          {/* 👇 Input Tipe Date (Hari-Bulan-Tahun) 👇 */}
-          <input 
-            type="date" 
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="text-xs font-semibold px-2 py-1.5 border rounded-lg bg-white/50 dark:bg-slate-700 dark:text-white dark:border-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
-            title="Pilih Tanggal Export"
-          />
-          <button 
-            onClick={() => handleExportHarian('csv')}
-            disabled={isExporting}
-            className="text-xs font-bold px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 hover:shadow-sm transition-all disabled:opacity-50"
-          >
-            {isExporting ? '...' : 'CSV'}
-          </button>
-          <button 
-            onClick={() => handleExportHarian('xml')}
-            disabled={isExporting}
-            className="text-xs font-bold px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-sm transition-all disabled:opacity-50"
-          >
-            {isExporting ? '...' : 'XML'}
-          </button>
-        </div>
-      </div>
-      
-      {data.length === 0 ? (
-        <div className="h-80 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-600">
-           <div className="animate-bounce mb-3 text-3xl">📊</div>
-           <p className="text-sm font-medium">Menunggu aliran data dari sensor...</p>
-        </div>
-      ) : (
-        <div ref={chartRef} className="cursor-crosshair">
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
-              <XAxis
-                dataKey="timestamp"
-                tickFormatter={formatXAxis}
-                stroke="currentColor"
-                className="text-gray-500 dark:text-slate-400"
-                tick={{ fontSize: 11, fontWeight: 500 }}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={50}
-              />
-              <YAxis 
-                stroke="currentColor" 
-                className="text-gray-500 dark:text-slate-400"
-                tick={{ fontSize: 11, fontWeight: 500 }}
-                tickLine={false}
-                axisLine={false}
-                domain={[
-                  (dataMin: number) => Number((dataMin - 0.5).toFixed(1)),
-                  (dataMax: number) => Number((dataMax + 0.5).toFixed(1))
-                ]}
-                tickFormatter={formatYAxis} 
-                width={65} 
-              />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />
-              <Legend 
-                iconType="circle"
-                wrapperStyle={{ paddingTop: '20px', paddingBottom: '10px', fontSize: '13px', fontWeight: 'bold', color: 'inherit' }} 
-              />
-              
-              {dataKeys.map((item) => (
-                <Line
-                  key={item.key}
-                  type="monotone"
-                  dataKey={item.key}
-                  stroke={item.color}
-                  strokeWidth={3.5}
-                  name={item.name}
-                  dot={false}
-                  activeDot={{ r: 6, strokeWidth: 0, className: "shadow-glow" }}
-                  animationDuration={300} 
+        {data.length === 0 ? (
+          <div className="h-80 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-600">
+             <div className="animate-bounce mb-3 text-3xl">📊</div>
+             <p className="text-sm font-medium">Menunggu aliran data dari sensor...</p>
+          </div>
+        ) : (
+          <div ref={chartRef} className="cursor-crosshair">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="currentColor" className="text-gray-200 dark:text-slate-700" />
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={formatXAxis}
+                  stroke="currentColor"
+                  className="text-gray-500 dark:text-slate-400"
+                  tick={{ fontSize: 11, fontWeight: 500 }}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={50}
                 />
-              ))}
+                <YAxis 
+                  stroke="currentColor" 
+                  className="text-gray-500 dark:text-slate-400"
+                  tick={{ fontSize: 11, fontWeight: 500 }}
+                  tickLine={false}
+                  axisLine={false}
+                  domain={[
+                    (dataMin: number) => Number((dataMin - 0.5).toFixed(1)),
+                    (dataMax: number) => Number((dataMax + 0.5).toFixed(1))
+                  ]}
+                  tickFormatter={formatYAxis} 
+                  width={65} 
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                <Legend 
+                  iconType="circle"
+                  wrapperStyle={{ paddingTop: '20px', paddingBottom: '10px', fontSize: '13px', fontWeight: 'bold', color: 'inherit' }} 
+                />
+                
+                {dataKeys.map((item) => (
+                  <Line
+                    key={item.key}
+                    type="monotone"
+                    dataKey={item.key}
+                    stroke={item.color}
+                    strokeWidth={3.5}
+                    name={item.name}
+                    dot={false}
+                    activeDot={{ r: 6, strokeWidth: 0, className: "shadow-glow" }}
+                    animationDuration={300} 
+                  />
+                ))}
 
-              <Brush 
-                dataKey="timestamp" 
-                height={35} 
-                stroke="#94a3b8" 
-                fill="transparent"
-                tickFormatter={() => ""} 
-                startIndex={zoomDomain.start}
-                endIndex={zoomDomain.end}
-                onChange={(newIndex) => {
-                  if (newIndex.startIndex !== undefined && newIndex.endIndex !== undefined) {
-                    setZoomDomain({ start: newIndex.startIndex, end: newIndex.endIndex });
-                  }
-                }}
-                className="opacity-70 hover:opacity-100 transition-opacity"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </div>
+                <Brush 
+                  dataKey="timestamp" 
+                  height={35} 
+                  stroke="#94a3b8" 
+                  fill="transparent"
+                  tickFormatter={() => ""} 
+                  startIndex={zoomDomain.start}
+                  endIndex={zoomDomain.end}
+                  onChange={(newIndex) => {
+                    if (newIndex.startIndex !== undefined && newIndex.endIndex !== undefined) {
+                      setZoomDomain({ start: newIndex.startIndex, end: newIndex.endIndex });
+                    }
+                  }}
+                  className="opacity-70 hover:opacity-100 transition-opacity"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* 👇 Pasang AuthModal di luar container Card 👇 */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onSuccess={() => {
+          setIsAuthModalOpen(false);
+          // Opsional: Kalau mau otomatis langsung download setelah berhasil login,
+          // Tuan Muda bisa panggil handleExportHarian di sini, tapi user mencet ulang juga tidak apa-apa.
+        }} 
+      />
+    </>
   );
 }
