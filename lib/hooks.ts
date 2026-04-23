@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, update, set, query, limitToLast } from 'firebase/database'; // Tambah query & limitToLast
+import { ref, onValue, update, set, query, limitToLast } from 'firebase/database';
 import { database } from './firebase';
 import { SensorData, SystemControl, HistoricalDataPoint, ControlMode, ActuatorState } from './types';
 
 /**
- * Hook Sensor Data - (Sudah Aman)
+ * Hook Sensor Data
  */
 export function useSensorData() {
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
@@ -32,37 +32,33 @@ export function useSensorData() {
 }
 
 /**
- * Hook Historical Data - FIX JALUR BULANAN 🚀
+ * Hook Historical Data - OPTIMASI QUERY 🚀
  */
 export function useHistoricalData(limitCount: number = 50) {
   const [historyData, setHistoryData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Dapatkan string bulan sekarang (Format: YYYY-MM)
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     
-    // 2. Arahkan ref langsung ke sub-folder bulan sekarang
-    const historyPath = `sensors/history/${currentMonth}`;
-    const historyRef = ref(database, historyPath);
+    // 👇 Menggunakan Query limitToLast agar tidak narik semua data (Hemat Kuota & Cepat)
+    const historyRef = query(
+      ref(database, `sensors/history/${currentMonth}`),
+      limitToLast(limitCount)
+    );
 
     const unsubscribe = onValue(historyRef, (snapshot) => {
       setLoading(false);
       if (snapshot.exists()) {
         const data = snapshot.val();
-        // Ubah object Firebase menjadi array
         const dataArray: HistoricalDataPoint[] = Object.values(data);
         
-        // Sorting: Data terbaru di paling kanan grafik
         const sorted = dataArray
-          .sort((a, b) => b.timestamp - a.timestamp) // Urutkan terbaru dulu
-          .slice(0, limitCount)                     // Ambil sebanyak limit
-          .reverse();                                // Balik lagi buat grafik (kiri ke kanan)
+          .sort((a, b) => a.timestamp - b.timestamp); // Urutkan dari lama ke baru untuk grafik
           
         setHistoryData(sorted);
       } else {
-        // Jika folder bulan ini belum ada (misal baru ganti bulan)
         setHistoryData([]);
       }
     });
@@ -74,7 +70,7 @@ export function useHistoricalData(limitCount: number = 50) {
 }
 
 /**
- * Hook System Control - (Sudah Aman)
+ * Hook System Control
  */
 export function useSystemControl() {
   const [control, setControl] = useState<SystemControl | null>(null);
@@ -128,14 +124,16 @@ export function useSystemControl() {
 }
 
 /**
- * Hook Connection Status - (Sudah Aman)
+ * Hook Connection Status - FIX: MONITORING LANGSUNG KE DATA SENSOR 🛡️
  */
 export function useConnectionStatus() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<number | null>(null);
 
   useEffect(() => {
-    const statusRef = ref(database, 'lastUpdated');
+    // 👇 RAHASIA: Kita intip langsung timestamp di dalam folder sensor utama
+    // Jika data sensor ter-update, maka status otomatis Online.
+    const statusRef = ref(database, 'sensors/current/timestamp');
 
     const unsubscribe = onValue(statusRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -148,7 +146,10 @@ export function useConnectionStatus() {
       if (lastUpdate) {
         const now = Date.now();
         const diff = now - lastUpdate;
-        setIsConnected(diff < 40000); // Dikasih toleransi 40 detik
+        
+        // Kita beri toleransi 1 menit (60000ms). 
+        // Cocok untuk WiFi Hotspot yang kadang naik turun.
+        setIsConnected(diff < 60000); 
       } else {
         setIsConnected(false);
       }
