@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, update, set, DatabaseReference } from 'firebase/database';
+import { ref, onValue, update, set, query, limitToLast } from 'firebase/database'; // Tambah query & limitToLast
 import { database } from './firebase';
 import { SensorData, SystemControl, HistoricalDataPoint, ControlMode, ActuatorState } from './types';
 
 /**
- * Hook Sensor Data
+ * Hook Sensor Data - (Sudah Aman)
  */
 export function useSensorData() {
   const [sensorData, setSensorData] = useState<SensorData | null>(null);
@@ -32,34 +32,49 @@ export function useSensorData() {
 }
 
 /**
- * Hook Historical Data - Optimasi Sorting
+ * Hook Historical Data - FIX JALUR BULANAN 🚀
  */
-export function useHistoricalData(limit: number = 50) {
+export function useHistoricalData(limitCount: number = 50) {
   const [historyData, setHistoryData] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const historyRef = ref(database, 'sensors/history');
+    // 1. Dapatkan string bulan sekarang (Format: YYYY-MM)
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // 2. Arahkan ref langsung ke sub-folder bulan sekarang
+    const historyPath = `sensors/history/${currentMonth}`;
+    const historyRef = ref(database, historyPath);
+
     const unsubscribe = onValue(historyRef, (snapshot) => {
       setLoading(false);
       if (snapshot.exists()) {
         const data = snapshot.val();
+        // Ubah object Firebase menjadi array
         const dataArray: HistoricalDataPoint[] = Object.values(data);
+        
+        // Sorting: Data terbaru di paling kanan grafik
         const sorted = dataArray
-          .sort((a, b) => b.timestamp - a.timestamp)
-          .slice(0, limit)
-          .reverse(); 
+          .sort((a, b) => b.timestamp - a.timestamp) // Urutkan terbaru dulu
+          .slice(0, limitCount)                     // Ambil sebanyak limit
+          .reverse();                                // Balik lagi buat grafik (kiri ke kanan)
+          
         setHistoryData(sorted);
+      } else {
+        // Jika folder bulan ini belum ada (misal baru ganti bulan)
+        setHistoryData([]);
       }
     });
+
     return () => unsubscribe();
-  }, [limit]);
+  }, [limitCount]);
 
   return { historyData, loading };
 }
 
 /**
- * Hook System Control - Sinkronisasi dengan ESP32 ("otomatis")
+ * Hook System Control - (Sudah Aman)
  */
 export function useSystemControl() {
   const [control, setControl] = useState<SystemControl | null>(null);
@@ -74,7 +89,7 @@ export function useSystemControl() {
         setControl(snapshot.val() as SystemControl);
       } else {
         const defaultControl: SystemControl = {
-          mode: 'manual', // Default ke manual
+          mode: 'manual',
           actuators: { feeder: false, pelontar: false }
         };
         set(controlRef, defaultControl);
@@ -113,14 +128,13 @@ export function useSystemControl() {
 }
 
 /**
- *
+ * Hook Connection Status - (Sudah Aman)
  */
 export function useConnectionStatus() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<number | null>(null);
 
   useEffect(() => {
-    // 1. Ambil data timestamp terakhir dari ESP32
     const statusRef = ref(database, 'lastUpdated');
 
     const unsubscribe = onValue(statusRef, (snapshot) => {
@@ -130,13 +144,11 @@ export function useConnectionStatus() {
       }
     });
 
-    // 2. HEARTBEAT CHECKER 
     const interval = setInterval(() => {
       if (lastUpdate) {
         const now = Date.now();
         const diff = now - lastUpdate;
-        
-        setIsConnected(diff < 30000); 
+        setIsConnected(diff < 40000); // Dikasih toleransi 40 detik
       } else {
         setIsConnected(false);
       }
@@ -146,7 +158,7 @@ export function useConnectionStatus() {
       unsubscribe();
       clearInterval(interval);
     };
-  }, [lastUpdate]); // Re-run checker lastUpdate
+  }, [lastUpdate]);
 
   return { isConnected, lastUpdate };
 }
