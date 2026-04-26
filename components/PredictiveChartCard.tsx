@@ -78,7 +78,7 @@ export default function PredictiveChartCard({ data }: PredictiveChartProps) {
           <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
             AI Predictive Analysis
           </h3>
-          <p className="text-xs text-slate-500 font-medium mt-1">Forecasting pH & DO berbasis Regresi Linear</p>
+          <p className="text-xs text-slate-500 font-medium mt-1"></p>
         </div>
 
         {/* Panel Kendali Slider */}
