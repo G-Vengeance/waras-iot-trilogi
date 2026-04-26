@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Settings, Zap, Radio } from 'lucide-react'; // 👈 LogOut sudah dihapus dari import
+import { Settings, Zap, Radio, ShieldAlert, ShieldCheck, X, Info } from 'lucide-react';
 import { ControlMode, ActuatorState } from '@/lib/types';
-// import { getAuth, signOut } from 'firebase/auth'; // 👈 Ini juga sudah dihapus karena tidak dipakai lagi di sini
 import { useAuth } from '@/lib/hooks';
 import AuthModal from './AuthModal';
 
@@ -9,9 +8,14 @@ interface ControlPanelProps {
   mode: ControlMode;
   actuators: ActuatorState;
   onModeChange: (mode: ControlMode) => void;
-  onActuatorToggle: (actuator: keyof ActuatorState) => void;
+  onActuatorToggle: (actuator: keyof ActuatorState) => Promise<{success: boolean, message?: string}> | void;
   disabled?: boolean;
 }
+
+const MASTER_EMAILS = [
+  "pratamagerrio@gmail.com",
+  "warasiottrilogi@gmail.com"
+];
 
 export default function ControlPanel({
   mode,
@@ -23,12 +27,33 @@ export default function ControlPanel({
   
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [limitError, setLimitError] = useState(''); 
+  const [isRoleInfoOpen, setIsRoleInfoOpen] = useState(false);
 
-  const handleProtectedAction = (action: () => void) => {
+  const isMaster = user ? MASTER_EMAILS.includes(user.email || '') : false;
+
+  const handleProtectedModeChange = (newMode: ControlMode) => {
     if (!user) {
       setIsAuthModalOpen(true);
     } else {
-      action();
+      onModeChange(newMode);
+    }
+  };
+
+  const handleProtectedActuator = async (actuatorName: keyof ActuatorState) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    
+    setLimitError(''); 
+    const result = await onActuatorToggle(actuatorName);
+    
+    // @ts-ignore
+    if (result && result.success === false) {
+      // @ts-ignore
+      setLimitError(result.message); 
+      setTimeout(() => setLimitError(''), 5000);
     }
   };
 
@@ -42,7 +67,28 @@ export default function ControlPanel({
             <h3 className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight transition-colors">Panel Kontrol</h3>
           </div>
           
-          {/* 👇 Tombol Keluar yang lama sudah dihapus total dari sini 👇 */}
+          {user && (
+            <button 
+              onClick={() => setIsRoleInfoOpen(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-extrabold uppercase tracking-wide shadow-sm transition-all hover:scale-105 active:scale-95
+                ${isMaster 
+                  ? 'bg-amber-100/50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-400' 
+                  : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'
+                }
+              `}
+              title="Klik untuk melihat penjelasan role"
+            >
+              {isMaster ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
+              {isMaster ? 'Master' : 'Publik'}
+              <Info className="w-3 h-3 ml-0.5 opacity-70" />
+            </button>
+          )}
+        </div>
+
+        <div className={`overflow-hidden transition-all duration-500 ease-in-out ${limitError ? 'max-h-24 opacity-100 mb-4' : 'max-h-0 opacity-0 m-0'}`}>
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg text-xs font-bold text-red-600 dark:text-red-400 shadow-sm text-center">
+            {limitError}
+          </div>
         </div>
 
         <div className="mb-6">
@@ -51,7 +97,7 @@ export default function ControlPanel({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => handleProtectedAction(() => onModeChange('otomatis' as ControlMode))}
+              onClick={() => handleProtectedModeChange('otomatis' as ControlMode)}
               className={`px-4 py-3 rounded-lg border-2 font-bold transition-all duration-200 shadow-sm ${
                 mode === 'otomatis' || mode === 'auto'
                   ? 'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-500 text-indigo-700 dark:text-indigo-300'
@@ -65,7 +111,7 @@ export default function ControlPanel({
             </button>
             
             <button
-              onClick={() => handleProtectedAction(() => onModeChange('manual' as ControlMode))}
+              onClick={() => handleProtectedModeChange('manual' as ControlMode)}
               className={`px-4 py-3 rounded-lg border-2 font-bold transition-all duration-200 shadow-sm ${
                 mode === 'manual'
                   ? 'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-500 text-indigo-700 dark:text-indigo-300'
@@ -95,11 +141,11 @@ export default function ControlPanel({
               <div className={`w-3 h-3 rounded-full shadow-sm transition-colors ${actuators.feeder ? 'bg-emerald-500 animate-pulse-slow' : 'bg-gray-300 dark:bg-slate-600'}`} />
               <div>
                 <p className="font-bold text-gray-900 dark:text-white transition-colors">Feeder</p>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors">Sistem pemberian pakan</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors">Pakan turun</p>
               </div>
             </div>
             <button
-              onClick={() => handleProtectedAction(() => onActuatorToggle('feeder'))}
+              onClick={() => handleProtectedActuator('feeder')}
               disabled={mode === 'otomatis' || mode === 'auto' || disabled}
               className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors shadow-inner ${actuators.feeder ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'} ${(mode === 'otomatis' || mode === 'auto' || disabled) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}`}
             >
@@ -112,11 +158,11 @@ export default function ControlPanel({
               <div className={`w-3 h-3 rounded-full shadow-sm transition-colors ${actuators.pelontar ? 'bg-emerald-500 animate-pulse-slow' : 'bg-gray-300 dark:bg-slate-600'}`} />
               <div>
                 <p className="font-bold text-gray-900 dark:text-white transition-colors">Pelontar</p>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors">Sistem pelontar otomatis</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors">Tembak pakan</p>
               </div>
             </div>
             <button
-              onClick={() => handleProtectedAction(() => onActuatorToggle('pelontar'))}
+              onClick={() => handleProtectedActuator('pelontar')}
               disabled={mode === 'otomatis' || mode === 'auto' || disabled}
               className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors shadow-inner ${actuators.pelontar ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'} ${(mode === 'otomatis' || mode === 'auto' || disabled) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}`}
             >
@@ -129,8 +175,12 @@ export default function ControlPanel({
           <p className="text-xs text-indigo-800 dark:text-indigo-300 font-bold transition-colors">
              {mode === 'manual' ? "🟢 Anda memegang kendali penuh" : "🔵 Sistem bekerja secara otomatis"}
           </p>
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
-             Status Akses: {user ? <span className="text-emerald-600 dark:text-emerald-400">Operator Aktif</span> : <span className="text-amber-600 dark:text-amber-400">Terkunci (Mode Publik)</span>}
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium flex items-center justify-center gap-1 mt-1">
+             Status Akses: 
+             {user 
+                ? (isMaster ? <span className="text-amber-600 dark:text-amber-400 font-bold">Master</span> : <span className="text-emerald-600 dark:text-emerald-400 font-bold">Operator Publik</span>) 
+                : <span className="text-gray-500 font-bold">Terkunci (Guest)</span>
+             }
           </p>
         </div>
       </div>
@@ -140,6 +190,63 @@ export default function ControlPanel({
         onClose={() => setIsAuthModalOpen(false)} 
         onSuccess={() => setIsAuthModalOpen(false)} 
       />
+
+      {/* 👇 MODAL POP-UP PENJELASAN ROLE (PINTAR & RAHASIA) 👇 */}
+      {isRoleInfoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm border border-indigo-100 dark:border-slate-700 relative overflow-hidden">
+            
+            <button 
+              onClick={() => setIsRoleInfoOpen(false)} 
+              className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="p-6">
+              <h2 className="text-xl font-extrabold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                <Info className="w-5 h-5 text-indigo-500" />
+                Tingkat Akses
+              </h2>
+              
+              <div className="space-y-5">
+                
+                {/* 👇 Penjelasan INI HANYA MUNCUL kalau yang login adalah MASTER 👇 */}
+                {isMaster && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl">
+                    <h3 className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold mb-2">
+                      <ShieldCheck className="w-4 h-4" /> Master
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+                      Anda memiliki akses eksklusif tingkat tinggi. Anda dapat mengontrol semua aktuator (Feeder & Pelontar) tanpa ada batasan waktu atau kuota jumlah klik (Unlimited).
+                    </p>
+                  </div>
+                )}
+
+                {/* 👇 Penjelasan INI HANYA MUNCUL kalau yang login adalah PUBLIK 👇 */}
+                {!isMaster && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/30 border border-slate-100 dark:border-slate-700 rounded-xl">
+                    <h3 className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold mb-2">
+                      <ShieldAlert className="w-4 h-4" /> Operator Publik
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+                      Demi menjaga keawetan dan mencegah kerusakan hardware akibat <i>spam</i> klik, pengguna publik dibatasi hanya dapat mengirim <b>MAKSIMAL 2 PERINTAH KONTROL SETIAP 2 JAM</b>.
+                    </p>
+                  </div>
+                )}
+
+              </div>
+              
+              <button 
+                onClick={() => setIsRoleInfoOpen(false)}
+                className="w-full mt-6 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold rounded-lg transition-colors text-sm"
+              >
+                Saya Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

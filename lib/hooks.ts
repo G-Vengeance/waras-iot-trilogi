@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, update, set, query, limitToLast } from 'firebase/database';
+import { ref, onValue, update, set, query, limitToLast, get } from 'firebase/database';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { database } from './firebase'; // Pastikan database diexport dari file ini
+import { database } from './firebase'; 
 import { SensorData, SystemControl, HistoricalDataPoint, ControlMode, ActuatorState } from './types';
+import { logEvent } from 'firebase/analytics';
+import { analytics } from './firebase';
 
 /**
  * Hook Sensor Data
@@ -56,7 +58,7 @@ export function useHistoricalData(limitCount: number = 50) {
         const dataArray: HistoricalDataPoint[] = Object.values(data);
         
         const sorted = dataArray
-          .sort((a, b) => a.timestamp - b.timestamp); // Urutkan dari lama ke baru untuk grafik
+          .sort((a, b) => a.timestamp - b.timestamp); 
           
         setHistoryData(sorted);
       } else {
@@ -70,8 +72,14 @@ export function useHistoricalData(limitCount: number = 50) {
   return { historyData, loading };
 }
 
+// 👇 DAFTAR EMAIL MASTER (Admin yang Bebas Kuota) 👇
+const MASTER_EMAILS = [
+  "pratamagerrio@gmail.com",
+  "warasiottrilogi@gmail.com"
+];
+
 /**
- * Hook System Control
+ * Hook System Control - DENGAN FITUR ROLE & RATE LIMIT 🛡️
  */
 export function useSystemControl() {
   const [control, setControl] = useState<SystemControl | null>(null);
@@ -100,6 +108,12 @@ export function useSystemControl() {
     setUpdating(true);
     try {
       await update(ref(database, 'control'), { mode });
+      
+      // (Opsional) Tuan Muda juga bisa melacak pergantian mode di sini kalau mau
+      if (analytics) {
+        logEvent(analytics, 'mode_changed', { new_mode: mode });
+      }
+      
     } catch (err) {
       console.error('Gagal update mode:', err);
     } finally {
@@ -107,33 +121,82 @@ export function useSystemControl() {
     }
   };
 
-  const toggleActuator = async (actuator: keyof ActuatorState) => {
+  // 👇 Fungsi Toggle yang sudah diperketat dengan Sistem Kuota 👇
+  const toggleActuator = async (actuator: keyof ActuatorState): Promise<{success: boolean, message?: string}> => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    // 1. Cek Login
+    if (!user) return { success: false, message: "Akses ditolak. Silakan login." };
+
+    // 2. Cek Jabatan (Master atau Publik)
+    const isMaster = MASTER_EMAILS.includes(user.email || '');
+
+    // 3. JIKA BUKAN MASTER, CEK KUOTA (RATE LIMIT: 2x per 2 Jam)
+    if (!isMaster) {
+      setUpdating(true);
+      const limitRef = ref(database, `rate_limit/${user.uid}`);
+      const snapshot = await get(limitRef);
+      const now = Date.now();
+      const twoHoursAgo = now - (2 * 60 * 60 * 1000); // Waktu 2 jam yang lalu dalam milidetik
+
+      let validClicks: number[] = [];
+      if (snapshot.exists()) {
+        const clicks = snapshot.val() as number[];
+        // Buang riwayat klik yang sudah lebih dari 2 jam
+        validClicks = clicks.filter(time => time > twoHoursAgo);
+      }
+
+      // Jika dalam 2 jam terakhir sudah klik 2 kali atau lebih, Blokir!
+      if (validClicks.length >= 2) {
+        setUpdating(false);
+        return { success: false, message: "⏳ Kuota Habis! Anda hanya diizinkan mengontrol 2 kali per 2 jam." };
+      }
+
+      // Jika kuota masih ada, catat waktu klik saat ini ke Firebase
+      validClicks.push(now);
+      await set(limitRef, validClicks);
+    }
+
+    // 4. EKSEKUSI PERINTAH KE HARDWARE (JIKA LOLOS CEKALAN)
     if (control?.actuators) {
       setUpdating(true);
       try {
         const newState = !control.actuators[actuator];
         await set(ref(database, `control/actuators/${actuator}`), newState);
+        
+        // 👇 FIX: FIREBASE ANALYTICS DITANAM DI SINI 👇
+        if (analytics) {
+          logEvent(analytics, 'actuator_used', {
+            actuator_name: actuator,           // Mencatat 'feeder' atau 'pelontar'
+            action: newState ? 'ON' : 'OFF',   // Mencatat apakah dihidupkan/dimatikan
+            user_email: user.email,            // Siapa pelakunya
+            user_role: isMaster ? 'Master' : 'Publik' 
+          });
+        }
+        
+        return { success: true };
       } catch (err) {
         console.error('Gagal update aktuator:', err);
+        return { success: false, message: "Gagal menyambung ke server database." };
       } finally {
         setUpdating(false);
       }
     }
+    return { success: false, message: "Sistem belum siap." };
   };
 
   return { control, loading, updating, updateMode, toggleActuator };
 }
 
 /**
- * Hook Connection Status - FIX: MONITORING LANGSUNG KE DATA SENSOR 🛡️
+ * Hook Connection Status - MONITORING LANGSUNG KE DATA SENSOR 🛡️
  */
 export function useConnectionStatus() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<number | null>(null);
 
   useEffect(() => {
-    // Kita intip langsung timestamp di dalam folder sensor utama
-    // Jika data sensor ter-update, maka status otomatis Online.
     const statusRef = ref(database, 'sensors/current/timestamp');
 
     const unsubscribe = onValue(statusRef, (snapshot) => {
@@ -148,7 +211,7 @@ export function useConnectionStatus() {
         const now = Date.now();
         const diff = now - lastUpdate;
         
-        // Toleransi 1 menit (60000ms) untuk hotspot WiFi.
+        // Toleransi 1 menit (60000ms) untuk menentukan status Offline/Online
         setIsConnected(diff < 60000); 
       } else {
         setIsConnected(false);
@@ -172,7 +235,6 @@ export function useAuth() {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // getAuth() diambil langsung dari modul firebase/auth
     const auth = getAuth(); 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
