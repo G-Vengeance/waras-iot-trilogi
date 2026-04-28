@@ -7,6 +7,7 @@ import ControlPanel from '@/components/ControlPanel';
 import StatusBadge from '@/components/StatusBadge';
 import PredictiveChartCard from '@/components/PredictiveChartCard';
 import UserProfileModal from '@/components/UserProfileModal'; 
+import ThemeToggle from '@/components/ThemeToggle';
 import {
   useSensorData,
   useHistoricalData,
@@ -23,6 +24,7 @@ export default function Dashboard() {
 
   // Ambil data user & siapkan state untuk Modal Profil
   const { user } = useAuth();
+
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const isLoading = sensorLoading || controlLoading;
@@ -48,14 +50,14 @@ export default function Dashboard() {
       </Head>
 
       <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-        
+
         {/* HEADER DIBUAT RESPONSIF DI HP */}
         <div className="bg-gradient-to-r from-indigo-50/90 to-white/90 dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-md shadow-sm border-b border-indigo-100 dark:border-indigo-900/50 sticky top-0 z-40 transition-all duration-300">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-5">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-3 sm:gap-4">
               
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0">
                   <img 
                     src="/logo-light.png" 
                     alt="Logo WARAS" 
@@ -68,8 +70,8 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div>
-                  <h1 className="text-xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight">
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight truncate">
                     WARAS Dashboard
                   </h1>
                   <p className="hidden sm:block text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
@@ -79,8 +81,10 @@ export default function Dashboard() {
               </div>
 
               {/* Status Badge & Tombol Profil User */}
-              <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center flex-shrink-0 gap-1.5 sm:gap-3">
                 {isMounted && <StatusBadge isConnected={isConnected} lastUpdate={lastUpdate} />}
+
+                <ThemeToggle />
                 
                 {user && (
                   <button 
@@ -127,6 +131,7 @@ export default function Dashboard() {
                 minSafe={6.5} 
                 maxSafe={8.5} 
                 subtitle="Ideal: 6.5 - 8.5 pH"
+                animationDelay={100}
               />
             </div>
             <div className="col-span-1">
@@ -138,6 +143,7 @@ export default function Dashboard() {
                 color="green"
                 minSafe={4.0} 
                 subtitle="Minimal: 4.0 mg/L"
+                animationDelay={200}
               />
             </div>
             <div className="col-span-1">
@@ -150,6 +156,7 @@ export default function Dashboard() {
                 minSafe={26.0} 
                 maxSafe={30.0} 
                 subtitle="Ideal: 26 - 30 °C"
+                animationDelay={300}
               />
             </div>
           </div>
@@ -173,6 +180,7 @@ export default function Dashboard() {
               <ChartCard
                 title="Grafik pH & DO"
                 data={historyData}
+                isLoading={historyLoading}
                 dataKeys={[
                   { key: 'ph', name: 'pH Level', color: '#3b82f6' },
                   { key: 'do', name: 'DO (mg/L)', color: '#10b981' },
@@ -181,11 +189,12 @@ export default function Dashboard() {
               <ChartCard
                 title="Grafik Suhu"
                 data={historyData}
+                isLoading={historyLoading}
                 dataKeys={[
                   { key: 'temperature', name: 'Suhu (°C)', color: '#f59e0b' },
                 ]}
               />
-              <PredictiveChartCard data={historyData} />
+              <PredictiveChartCard data={historyData} isLoading={historyLoading} />
             </div>
 
           </div>

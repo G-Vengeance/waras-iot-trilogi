@@ -10,6 +10,7 @@ interface StatCardProps {
   subtitle?: string;
   minSafe?: number; 
   maxSafe?: number; 
+  animationDelay?: number;
 }
 
 export default function StatCard({
@@ -21,6 +22,7 @@ export default function StatCard({
   subtitle,
   minSafe,
   maxSafe,
+  animationDelay = 0,
 }: StatCardProps) {
   const colorClasses = {
     blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50',
@@ -30,6 +32,14 @@ export default function StatCard({
   };
 
   const selectedColor = colorClasses[color as keyof typeof colorClasses] || colorClasses.blue;
+
+  // --- ANIMASI SAAT PERTAMA KALI MUNCUL ---
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    // Sedikit delay agar animasi terlihat lebih jelas saat halaman dimuat
+    const timer = setTimeout(() => setIsVisible(true), animationDelay);
+    return () => clearTimeout(timer);
+  }, [animationDelay]);
 
   // --- MEMORI INTERNAL STATCARD ---
   const [trend, setTrend] = useState<'up' | 'down' | 'stable'>('stable');
@@ -77,7 +87,13 @@ export default function StatCard({
   }
 
   return (
-    <div className={`relative bg-gradient-to-br from-indigo-50/50 to-white dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-lg border p-4 sm:p-6 transition-all duration-300 ${isDanger ? 'border-red-400 shadow-red-100 dark:shadow-red-900/20' : 'border-indigo-100 dark:border-indigo-900/50'}`}>
+    <div className={`
+      relative bg-gradient-to-br from-indigo-50/50 to-white dark:from-slate-800 dark:to-slate-900 
+      rounded-xl shadow-lg border p-4 sm:p-6 
+      transform transition-all duration-500 ease-out
+      ${isDanger ? 'border-red-400 shadow-red-100 dark:shadow-red-900/20' : 'border-indigo-100 dark:border-indigo-900/50'}
+      ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+    `}>
       
       {/* 👇 PENGATURAN ALIGNMENT AGAR ICON TIDAK MENCONG DI HP 👇 */}
       <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4">

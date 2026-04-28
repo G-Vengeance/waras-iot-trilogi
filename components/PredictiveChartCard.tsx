@@ -7,9 +7,10 @@ import { getChartDataWithPrediction } from '@/lib/predictive'; // Import rumus d
 
 interface PredictiveChartProps {
   data: HistoricalDataPoint[];
+  isLoading?: boolean;
 }
 
-export default function PredictiveChartCard({ data }: PredictiveChartProps) {
+export default function PredictiveChartCard({ data, isLoading }: PredictiveChartProps) {
   // Slider Controls
   const [analyzePoints, setAnalyzePoints] = useState(20); // Default baca 20 data ke belakang
   const [predictMinutes, setPredictMinutes] = useState(60); // Default tebak 60 menit ke depan
@@ -106,28 +107,41 @@ export default function PredictiveChartCard({ data }: PredictiveChartProps) {
         </div>
       </div>
 
-      <div className="h-[350px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" opacity={0.4} />
-            <XAxis dataKey="timestamp" tickFormatter={formatXAxis} tick={{ fontSize: 11 }} stroke="#94a3b8" />
-            <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" domain={['auto', 'auto']} width={60}/>
-            <Tooltip content={<PredictiveTooltip />} />
-            <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
-            
-            {/* Garis Batas Kritis DO */}
-            <ReferenceLine y={4.0} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'top', value: 'Batas Kritis DO (4.0)', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }} />
+      {isLoading ? (
+        // --- SKELETON LOADER UNTUK PREDICTIVE CHART ---
+        <div className="h-[350px] w-full bg-gray-50 dark:bg-slate-800/50 rounded-xl p-6 border border-dashed border-gray-300 dark:border-slate-600 animate-pulse">
+          <div className="h-full w-full flex flex-col justify-between">
+            <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+            <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+            <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+            <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+            <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+          </div>
+        </div>
+      ) : (
+        <div className="h-[350px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" opacity={0.4} />
+              <XAxis dataKey="timestamp" tickFormatter={formatXAxis} tick={{ fontSize: 11 }} stroke="#94a3b8" />
+              <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" domain={['auto', 'auto']} width={60}/>
+              <Tooltip content={<PredictiveTooltip />} />
+              <Legend wrapperStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+              
+              {/* Garis Batas Kritis DO */}
+              <ReferenceLine y={4.0} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'top', value: 'Batas Kritis DO (4.0)', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }} />
 
-            {/* Garis Masa Lalu (Solid) */}
-            <Line type="monotone" name="pH Historis" dataKey="ph_actual" stroke="#3b82f6" strokeWidth={3} dot={false} />
-            <Line type="monotone" name="DO Historis" dataKey="do_actual" stroke="#10b981" strokeWidth={3} dot={false} />
+              {/* Garis Masa Lalu (Solid) */}
+              <Line type="monotone" name="pH Historis" dataKey="ph_actual" stroke="#3b82f6" strokeWidth={3} dot={false} />
+              <Line type="monotone" name="DO Historis" dataKey="do_actual" stroke="#10b981" strokeWidth={3} dot={false} />
 
-            {/* Garis Masa Depan (Dashed / Putus-putus) */}
-            <Line type="monotone" name="Prediksi pH" dataKey="ph_predicted" stroke="#3b82f6" strokeWidth={3} strokeDasharray="6 6" dot={false} />
-            <Line type="monotone" name="Prediksi DO" dataKey="do_predicted" stroke="#10b981" strokeWidth={3} strokeDasharray="6 6" dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+              {/* Garis Masa Depan (Dashed / Putus-putus) */}
+              <Line type="monotone" name="Prediksi pH" dataKey="ph_predicted" stroke="#3b82f6" strokeWidth={3} strokeDasharray="6 6" dot={false} />
+              <Line type="monotone" name="Prediksi DO" dataKey="do_predicted" stroke="#10b981" strokeWidth={3} strokeDasharray="6 6" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
       
     </div>
   );

@@ -23,7 +23,7 @@ export default function StatusBadge({ isConnected, lastUpdate }: StatusBadgeProp
 
   return (
     <div className={`
-      inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300
+      inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors duration-300
       ${isConnected 
         ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50' 
         : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/50'
@@ -32,12 +32,12 @@ export default function StatusBadge({ isConnected, lastUpdate }: StatusBadgeProp
       {isConnected ? (
         <>
           <Wifi className="w-4 h-4" />
-          <span>Terhubung</span>
+          <span className="hidden sm:inline">Terhubung</span>
         </>
       ) : (
         <>
           <WifiOff className="w-4 h-4" />
-          <span>Terputus</span>
+          <span className="hidden sm:inline">Terputus</span>
         </>
       )}
       <span className="text-xs opacity-75 font-normal ml-1">

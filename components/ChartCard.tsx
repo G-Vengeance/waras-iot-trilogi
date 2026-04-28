@@ -15,14 +15,14 @@ interface ChartCardProps {
     name: string;
     color: string;
   }[];
+  isLoading?: boolean;
 }
 
-export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
+export default function ChartCard({ data, title, dataKeys, isLoading }: ChartCardProps) {
   // 👇 State untuk proteksi Export 👇
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
   const [zoomDomain, setZoomDomain] = useState({ start: 0, end: 100 });
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -32,10 +32,6 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (data && data.length > 0) {
@@ -210,8 +206,6 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
     return null;
   };
 
-  if (!isMounted) return <div className="h-[400px] bg-slate-50/50 dark:bg-slate-800/50 animate-pulse rounded-2xl" />;
-
   // 👇 Bungkus return utama dengan fragment <> ... </> agar bisa naruh Modal di bawah
   return (
     <>
@@ -253,11 +247,22 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
           </div>
         </div>
         
-        {data.length === 0 ? (
-          <div className="h-80 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-600">
-             <div className="animate-bounce mb-3 text-3xl">📊</div>
-             <p className="text-sm font-medium">Menunggu aliran data dari sensor...</p>
+        {isLoading ? (
+          // --- SKELETON LOADER DENGAN ANIMASI BERJALAN (PULSE) ---
+          <div className="h-80 w-full bg-gray-50 dark:bg-slate-800/50 rounded-xl p-6 border border-dashed border-gray-300 dark:border-slate-600 animate-pulse">
+            <div className="h-full w-full flex flex-col justify-between">
+              <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+              <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+              <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+              <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+              <div className="w-full h-px bg-gray-300 dark:bg-slate-700"></div>
+            </div>
           </div>
+        ) : data.length === 0 ? (
+            <div className="h-80 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-600">
+              <div className="animate-bounce mb-3 text-3xl">📊</div>
+              <p className="text-sm font-medium">Belum ada data historis yang terekam.</p>
+            </div>
         ) : (
           <div ref={chartRef} className="cursor-crosshair">
             <ResponsiveContainer width="100%" height={400}>
@@ -325,6 +330,7 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
             </ResponsiveContainer>
           </div>
         )}
+
       </div>
 
       {/* 👇 Pasang AuthModal di luar container Card 👇 */}
@@ -333,8 +339,6 @@ export default function ChartCard({ data, title, dataKeys }: ChartCardProps) {
         onClose={() => setIsAuthModalOpen(false)} 
         onSuccess={() => {
           setIsAuthModalOpen(false);
-          // Opsional: Kalau mau otomatis langsung download setelah berhasil login,
-          // Tuan Muda bisa panggil handleExportHarian di sini, tapi user mencet ulang juga tidak apa-apa.
         }} 
       />
     </>
