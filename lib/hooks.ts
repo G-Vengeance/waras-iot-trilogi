@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ref, onValue, update, set, query, limitToLast, get } from 'firebase/database';
+import { ref, onValue, update, set, query, limitToLast, get, push } from 'firebase/database';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { database } from './firebase'; 
 import { SensorData, SystemControl, HistoricalDataPoint, ControlMode, ActuatorState } from './types';
 import { logEvent } from 'firebase/analytics';
-import { analytics } from './firebase';
+import { analytics, auth as firebaseAuth } from './firebase'; // Import auth juga
 
 /**
  * Hook Sensor Data
@@ -79,6 +79,30 @@ const MASTER_EMAILS = [
 ];
 
 /**
+ * Interface untuk entri Log Aktivitas
+ */
+export interface ActivityLogEntry {
+  timestamp: number;
+  userEmail: string | null;
+  action: string;
+  details?: string;
+}
+
+/**
+ * Fungsi untuk mencatat aktivitas ke Firebase Realtime Database
+ */
+async function logActivity(action: string, details?: string) {
+  const user = firebaseAuth.currentUser;
+  const logRef = ref(database, 'activity_log');
+  await push(logRef, {
+    timestamp: Date.now(),
+    userEmail: user ? user.email : 'Guest',
+    action,
+    details,
+  });
+}
+
+/**
  * Hook System Control - DENGAN FITUR ROLE & RATE LIMIT 🛡️
  */
 export function useSystemControl() {
@@ -107,11 +131,13 @@ export function useSystemControl() {
   const updateMode = async (mode: ControlMode) => {
     setUpdating(true);
     try {
-      await update(ref(database, 'control'), { mode });
+      await update(ref(database, 'control'), { mode }); // Update mode di Firebase
       
-      // (Opsional) Tuan Muda juga bisa melacak pergantian mode di sini kalau mau
+      // Catat aktivitas ke log
+      await logActivity(`Mode operasi diubah menjadi ${mode}`);
+
       if (analytics) {
-        logEvent(analytics, 'mode_changed', { new_mode: mode });
+        logEvent(analytics, 'mode_changed', { new_mode: mode }); // Log ke Analytics
       }
       
     } catch (err) {
@@ -164,11 +190,14 @@ export function useSystemControl() {
       try {
         const newState = !control.actuators[actuator];
         await set(ref(database, `control/actuators/${actuator}`), newState);
+
+        // Catat aktivitas ke log
+        await logActivity(`${actuator} diubah menjadi ${newState ? 'ON' : 'OFF'}`);
         
         // 👇 FIX: FIREBASE ANALYTICS DITANAM DI SINI 👇
         if (analytics) {
           logEvent(analytics, 'actuator_used', {
-            actuator_name: actuator,           // Mencatat 'feeder' atau 'pelontar'
+            actuator_name: actuator,           // Mencatat 'feeder' atau 'pelontar' ke Analytics
             action: newState ? 'ON' : 'OFF',   // Mencatat apakah dihidupkan/dimatikan
             user_email: user.email,            // Siapa pelakunya
             user_role: isMaster ? 'Master' : 'Publik' 
@@ -187,6 +216,35 @@ export function useSystemControl() {
   };
 
   return { control, loading, updating, updateMode, toggleActuator };
+}
+
+/**
+ * Hook Activity Log - Mengambil log aktivitas terbaru
+ */
+export function useActivityLog(limitCount: number = 10) {
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const logRef = query(
+      ref(database, 'activity_log'),
+      limitToLast(limitCount) // Ambil N entri log terbaru
+    );
+
+    const unsubscribe = onValue(logRef, (snapshot) => {
+      setLoading(false);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const dataArray: ActivityLogEntry[] = Object.values(data);
+        setActivityLog(dataArray.sort((a, b) => b.timestamp - a.timestamp)); // Urutkan dari terbaru
+      } else {
+        setActivityLog([]);
+      }
+    });
+    return () => unsubscribe();
+  }, [limitCount]);
+
+  return { activityLog, loading };
 }
 
 /**

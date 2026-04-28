@@ -8,12 +8,14 @@ import StatusBadge from '@/components/StatusBadge';
 import PredictiveChartCard from '@/components/PredictiveChartCard';
 import UserProfileModal from '@/components/UserProfileModal'; 
 import ThemeToggle from '@/components/ThemeToggle';
+import ActivityLogCard from '@/components/ActivityLogCard';
 import {
   useSensorData,
   useHistoricalData,
   useSystemControl,
   useConnectionStatus,
-  useAuth 
+  useAuth, 
+  useActivityLog
 } from '@/lib/hooks';
 
 export default function Dashboard() {
@@ -164,16 +166,19 @@ export default function Dashboard() {
           {/* 👇 JURUS 2: CONTROL PANEL NAIK KE ATAS SAAT DI HP 👇 */}
           <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
             
-            <div className="order-first lg:order-last lg:col-span-1">
-              {control && (
-                <ControlPanel
-                  mode={control.mode}
-                  actuators={control.actuators}
-                  onModeChange={updateMode}
-                  onActuatorToggle={toggleActuator}
-                  disabled={!isConnected}
-                />
-              )}
+            <div className="order-first lg:order-last lg:col-span-1 space-y-4 sm:space-y-6">
+              <div>
+                {control && (
+                  <ControlPanel
+                    mode={control.mode}
+                    actuators={control.actuators}
+                    onModeChange={updateMode}
+                    onActuatorToggle={toggleActuator}
+                    disabled={!isConnected}
+                  />
+                )}
+              </div>
+              <ActivityLogCard />
             </div>
 
             <div className="order-last lg:order-first lg:col-span-2 space-y-4 sm:space-y-6">

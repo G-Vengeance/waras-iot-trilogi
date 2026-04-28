@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase, Database } from 'firebase/database';
 // 👇 Tambahan Import untuk Analytics 👇
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
+import { getAuth } from 'firebase/auth'; // <-- 1. Import getAuth
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,6 +17,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const database: Database = getDatabase(app);
+const auth = getAuth(app); // <-- 2. Buat instance Auth
 
 // 👇 INISIALISASI ANALYTICS KHUSUS NEXT.JS 👇
 let analytics: Analytics | null = null;
@@ -30,4 +32,4 @@ if (typeof window !== 'undefined') {
 }
 
 // Tambahkan 'analytics' ke dalam daftar export
-export { app, database, analytics };
+export { app, database, auth, analytics }; // <-- 3. Export auth
